@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PIÁ APP v8 · Process Intelligence Agent</title>
+<title>PIÁ APP v9.2 · Process Intelligence Agent</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -216,7 +216,17 @@ th.sortable.desc .sort-ico::before{content:'▼'}
 .pa-blocked{background:#FEE2E2;color:#991B1B}
 /* Kanban board */
 .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
-.kb-col{background:#F7F8FC;border-radius:12px;padding:12px;min-height:400px;border-top:4px solid var(--brand-gray);transition:background .15s}
+.kb-col{background:#F7F8FC;border-radius:12px;padding:12px;min-height:400px;border-top:4px solid var(--brand-gray);transition:background .15s;display:flex;flex-direction:column}
+/* v9.2: Container de cartoes com scroll VERTICAL, mostra 3 por vez */
+.kb-cards-scroll{display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;padding-right:6px;scroll-behavior:smooth;flex:1;max-height:calc(3 * 165px);min-height:100px}
+.kb-cards-scroll::-webkit-scrollbar{width:8px}
+.kb-cards-scroll::-webkit-scrollbar-track{background:#E5E7EE;border-radius:4px}
+.kb-cards-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--brand-blue),var(--brand-purple));border-radius:4px}
+.kb-cards-scroll::-webkit-scrollbar-thumb:hover{background:var(--brand-purple)}
+.kb-cards-scroll .kb-card{flex-shrink:0;width:100%;margin-bottom:0}
+.kb-scroll-hint{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;margin-top:8px;background:var(--brand-blue-l);color:var(--brand-blue);border-radius:8px;font-size:10.5px;font-weight:700;letter-spacing:.3px;animation:pulse-hint 2s ease-in-out infinite}
+@keyframes pulse-hint{0%,100%{opacity:.75}50%{opacity:1}}
+.kb-empty-msg{text-align:center;color:var(--mut);font-size:11px;padding:20px;font-style:italic;width:100%}
 .kb-col.todo{border-top-color:#9AA0A6}
 .kb-col.doing{border-top-color:var(--yellow)}
 .kb-col.done{border-top-color:var(--green)}
@@ -285,7 +295,7 @@ th.sortable.desc .sort-ico::before{content:'▼'}
  <div class="load-hero">
   <div class="logo"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="none" stroke="#fff" stroke-width="2.5"/><circle cx="16" cy="16" r="7" fill="none" stroke="#fff" stroke-width="2.5"/><circle cx="16" cy="16" r="2.5" fill="#fff"/></svg></div>
   <h1><span>PIÁ APP</span> · Eficiência Operacional</h1>
-  <p class="subtitle">Process Intelligence Agent · v8</p>
+  <p class="subtitle">Process Intelligence Agent · v9.2</p>
   <div class="load-actions"><button class="btn btn-primary" onclick="openWithHandle()" id="btn-login">🔗 Login</button></div>
  </div>
 </div>
@@ -454,15 +464,25 @@ th.sortable.desc .sort-ico::before{content:'▼'}
     <button class="btn btn-primary btn-sm" onclick="openPAModal()">+ Novo Plano</button>
    </div>
   </h2>
-  <p style="font-size:12px;color:var(--mut);margin-bottom:12px">💡 <b>Arraste os cartões</b> entre colunas para mudar o status. Clique em um cartão para editar.</p>
+  <p style="font-size:12px;color:var(--mut);margin-bottom:12px">💡 <b>Arraste os cartões</b> entre colunas para mudar o status. Clique em um cartão para editar. <b style="color:var(--brand-blue)">v9.2:</b> Mostra até <b>3 cartões</b> por coluna — role verticalmente para ver os demais.</p>
   <div class="kanban" id="kanban-pa"></div>
  </div>
  <div class="card">
-  <h2><i>▮</i>Lista completa</h2>
-  <div style="overflow-x:auto"><table>
-   <thead><tr><th>ID</th><th>Plano</th><th>Tipo</th><th>PIÁ</th><th>Responsável</th><th>Prazo</th><th>Status</th><th style="width:80px">Ações</th></tr></thead>
+  <h2 style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:10px"><i>▮</i>Lista completa</span><span style="font-size:11px;color:var(--brand-purple);font-weight:600;text-transform:none;letter-spacing:0"><b style="background:var(--brand-purple-l);color:var(--brand-purple-d);padding:3px 8px;border-radius:6px">v9.2</b> 10 por página · clique nos cabeçalhos para ordenar</span></h2>
+  <div style="overflow-x:auto"><table id="tbl-pa">
+   <thead><tr>
+    <th data-sort="id" onclick="sortPlanosLista('id')" class="sortable">ID <span class="sort-ico">⇅</span></th>
+    <th data-sort="nome" onclick="sortPlanosLista('nome')" class="sortable">Plano <span class="sort-ico">⇅</span></th>
+    <th data-sort="tipo" onclick="sortPlanosLista('tipo')" class="sortable">Tipo <span class="sort-ico">⇅</span></th>
+    <th data-sort="pia" onclick="sortPlanosLista('pia')" class="sortable">PIÁ <span class="sort-ico">⇅</span></th>
+    <th data-sort="resp" onclick="sortPlanosLista('resp')" class="sortable">Responsável <span class="sort-ico">⇅</span></th>
+    <th data-sort="prazo" onclick="sortPlanosLista('prazo')" class="sortable">Prazo <span class="sort-ico">⇅</span></th>
+    <th data-sort="stat" onclick="sortPlanosLista('stat')" class="sortable">Status <span class="sort-ico">⇅</span></th>
+    <th style="width:80px">Ações</th>
+   </tr></thead>
    <tbody id="tbody-pa"></tbody>
   </table></div>
+  <div class="pager" id="pager-pa"></div>
  </div>
 </section>
 
@@ -693,6 +713,10 @@ var supportsFSA = 'showOpenFilePicker' in window;
 var PAGE_SIZE = 10;
 var pgBase = {sort:null, dir:'asc', page:1};
 var pgRes = {page:1};
+/* v9.2: paginacao e ordenacao da Lista Completa de Planos */
+var pgPA = {sort:null, dir:'asc', page:1};
+/* v9.2: quantos cartoes visiveis por coluna no Kanban antes de ativar scroll vertical */
+var KANBAN_VISIBLE = 3;
 
 /* ===== ID GENERATION ===== */
 function nextPiaId(){
@@ -979,6 +1003,32 @@ function renderPager(elId,page,totalItems,onGo){
 }
 function goBasePage(p){pgBase.page=p;renderPias();}
 function goResPage(p){pgRes.page=p;renderResultados();}
+/* v9.2: navegacao da Lista Completa de Planos */
+function goPAPage(p){pgPA.page=p;renderPlanosAcao();}
+/* v9.2: Ordenacao da Lista Completa de Planos */
+function sortPlanosLista(field){
+ if(pgPA.sort===field)pgPA.dir=pgPA.dir==='asc'?'desc':'asc';
+ else {pgPA.sort=field;pgPA.dir='asc';}
+ pgPA.page=1;renderPlanosAcao();
+}
+function applySortPlanos(list){
+ if(!pgPA.sort)return list;
+ var f=pgPA.sort,dir=pgPA.dir==='asc'?1:-1;
+ var getVal=function(p){
+  switch(f){
+   case 'id':return (p.id||'').toLowerCase();
+   case 'nome':return (p.nome||'').toLowerCase();
+   case 'tipo':return (p.tipo||'').toLowerCase();
+   case 'pia':return (p.piaId||'').toLowerCase()+' '+(p.piaNome||'').toLowerCase();
+   case 'resp':return (p.resp||'').toLowerCase();
+   case 'prazo':return p.prazo?new Date(p.prazo).getTime():0;
+   case 'stat':var o={'A Fazer':1,'Em Andamento':2,'Bloqueado':3,'Concluído':4};return o[p.stat]||0;
+   default:return 0;
+  }
+ };
+ return list.slice().sort(function(a,b){var va=getVal(a),vb=getVal(b);if(typeof va==='string')return va.localeCompare(vb,'pt-BR')*dir;return (va-vb)*dir;});
+}
+function updateSortHeadersPA(){document.querySelectorAll('#tbl-pa th.sortable').forEach(function(th){th.classList.remove('asc','desc');if(th.dataset.sort===pgPA.sort)th.classList.add(pgPA.dir);});}
 function renderPias(){
  var full=filterList('');var sorted=applySortBase(full);var total=sorted.length;
  pgBase.page=renderPager('pager-base',pgBase.page,total,'goBasePage');
@@ -1323,40 +1373,62 @@ function renderPlanosAcao(){
   +'<div class="kpi"><b>'+st['Em Andamento']+'</b><span>Em Andamento</span></div>'
   +'<div class="kpi"><b>'+st['Concluído']+'</b><span>Concluídos</span></div>'
   +'<div class="kpi" style="border-color:var(--red)"><b style="color:var(--red)">'+atrasados+'</b><span>Atrasados</span></div>';
+ /* === KANBAN v9.2: Cartoes empilhados verticalmente + scroll vertical === */
  var cols={'A Fazer':[],'Em Andamento':[],'Concluído':[],'Bloqueado':[]};
  list.forEach(function(p){if(cols[p.stat])cols[p.stat].push(p);});
  var kb=document.getElementById('kanban-pa');
  var kbHtml='';
  [['A Fazer','todo','📋'],['Em Andamento','doing','🔄'],['Concluído','done','✅'],['Bloqueado','blocked','🚫']].forEach(function(c){
   var status=c[0],cls=c[1],icon=c[2];
-  kbHtml+='<div class="kb-col '+cls+'" data-status="'+status+'" ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)"><h3>'+icon+' '+status+' <span class="kb-count">'+cols[status].length+'</span></h3>';
-  cols[status].forEach(function(p){
-   var idx=db.planos.findIndex(function(x){return String(x.id)===String(p.id);});
-   var late=p.stat!=='Concluído'&&p.prazo&&new Date(p.prazo)<new Date();
-   kbHtml+='<div class="kb-card" draggable="true" data-plan-id="'+esc(p.id)+'" ondragstart="kbDragStart(event)" ondragend="kbDragEnd(event)" onclick="openPAModal('+idx+')">'
-    +'<div class="kb-id">'+esc(p.id)+(p.piaId?' <span class="kb-tipo">'+esc(p.tipo||'')+'</span>':'')+'</div>'
-    +'<div class="kb-title">'+esc(p.nome)+'</div>'
-    +(p.desc?'<div class="kb-desc">'+esc(p.desc)+'</div>':'')
-    +'<div class="kb-meta">'
-    +(p.piaId?'<span class="kb-pia" title="'+esc(p.piaNome||'')+'">'+esc(p.piaId)+'</span>':'')
-    +(p.resp?'<span class="kb-owner">👤 '+esc(p.resp)+'</span>':'')
-    +(p.prazo?'<span class="kb-date'+(late?' late':'')+'">📅 '+fmtDate(p.prazo)+'</span>':'')
-    +'</div></div>';
-  });
-  if(!cols[status].length)kbHtml+='<p style="text-align:center;color:var(--mut);font-size:11px;padding:20px;font-style:italic">Arraste um plano aqui</p>';
+  var arr=cols[status];
+  kbHtml+='<div class="kb-col '+cls+'" data-status="'+status+'" ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)">';
+  kbHtml+='<h3>'+icon+' '+status+' <span class="kb-count">'+arr.length+'</span></h3>';
+  if(!arr.length){
+   kbHtml+='<div class="kb-empty-msg">Arraste um plano aqui</div>';
+  } else {
+   /* v9.2: Container vertical com scroll — mostra 3 cartoes por vez */
+   kbHtml+='<div class="kb-cards-scroll">';
+   arr.forEach(function(p){
+    var idx=db.planos.findIndex(function(x){return String(x.id)===String(p.id);});
+    var late=p.stat!=='Concluído'&&p.prazo&&new Date(p.prazo)<new Date();
+    kbHtml+='<div class="kb-card" draggable="true" data-plan-id="'+esc(p.id)+'" ondragstart="kbDragStart(event)" ondragend="kbDragEnd(event)" onclick="openPAModal('+idx+')">'
+     +'<div class="kb-id">'+esc(p.id)+(p.piaId?' <span class="kb-tipo">'+esc(p.tipo||'')+'</span>':'')+'</div>'
+     +'<div class="kb-title">'+esc(p.nome)+'</div>'
+     +(p.desc?'<div class="kb-desc">'+esc(p.desc)+'</div>':'')
+     +'<div class="kb-meta">'
+     +(p.piaId?'<span class="kb-pia" title="'+esc(p.piaNome||'')+'">'+esc(p.piaId)+'</span>':'')
+     +(p.resp?'<span class="kb-owner">👤 '+esc(p.resp)+'</span>':'')
+     +(p.prazo?'<span class="kb-date'+(late?' late':'')+'">📅 '+fmtDate(p.prazo)+'</span>':'')
+     +'</div></div>';
+   });
+   kbHtml+='</div>';
+   /* v9.2: Dica visual quando ha mais de 3 cartoes */
+   if(arr.length>KANBAN_VISIBLE){
+    kbHtml+='<div class="kb-scroll-hint">⇅ '+(arr.length-KANBAN_VISIBLE)+' cartão(s) a mais · role para ver</div>';
+   }
+  }
   kbHtml+='</div>';
  });
  kb.innerHTML=kbHtml;
+ /* === LISTA COMPLETA v9.2: paginacao 10/pg + ordenacao === */
+ var sorted=applySortPlanos(list);
+ var total=sorted.length;
+ pgPA.page=renderPager('pager-pa',pgPA.page,total,'goPAPage');
+ var start=(pgPA.page-1)*PAGE_SIZE;
+ var pageList=sorted.slice(start,start+PAGE_SIZE);
  var tb=document.getElementById('tbody-pa');
- if(!list.length)tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--mut)">Nenhum plano.</td></tr>';
- else tb.innerHTML=list.map(function(p){
-  var idx=db.planos.findIndex(function(x){return String(x.id)===String(p.id);});
-  var stCls=p.stat==='Concluído'?'pa-done':p.stat==='Em Andamento'?'pa-doing':p.stat==='Bloqueado'?'pa-blocked':'pa-todo';
-  var late=p.stat!=='Concluído'&&p.prazo&&new Date(p.prazo)<new Date();
-  return '<tr><td><span class="id-chip pln">'+esc(p.id)+'</span></td><td><b>'+esc(p.nome)+'</b></td><td>'+esc(p.tipo||'—')+'</td><td>'+(p.piaId?'<span class="id-chip" style="margin-right:4px">'+esc(p.piaId)+'</span>':'')+esc(p.piaNome||'—')+'</td><td>'+esc(p.resp||'—')+'</td><td'+(late?' style="color:var(--red);font-weight:700"':'')+'>'+fmtDate(p.prazo)+'</td><td><span class="pa-status '+stCls+'">'+esc(p.stat)+'</span></td><td><button class="btn btn-ghost btn-sm" onclick="openPAModal('+idx+')">✏️</button></td></tr>';
- }).join('');
+ if(!total){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--mut)">Nenhum plano encontrado.</td></tr>';}
+ else {
+  tb.innerHTML=pageList.map(function(p){
+   var idx=db.planos.findIndex(function(x){return String(x.id)===String(p.id);});
+   var stCls=p.stat==='Concluído'?'pa-done':p.stat==='Em Andamento'?'pa-doing':p.stat==='Bloqueado'?'pa-blocked':'pa-todo';
+   var late=p.stat!=='Concluído'&&p.prazo&&new Date(p.prazo)<new Date();
+   return '<tr><td><span class="id-chip pln">'+esc(p.id)+'</span></td><td><b>'+esc(p.nome)+'</b></td><td>'+esc(p.tipo||'—')+'</td><td>'+(p.piaId?'<span class="id-chip" style="margin-right:4px">'+esc(p.piaId)+'</span>':'')+esc(p.piaNome||'—')+'</td><td>'+esc(p.resp||'—')+'</td><td'+(late?' style="color:var(--red);font-weight:700"':'')+'>'+fmtDate(p.prazo)+'</td><td><span class="pa-status '+stCls+'">'+esc(p.stat)+'</span></td><td><button class="btn btn-ghost btn-sm" onclick="openPAModal('+idx+')">✏️</button></td></tr>';
+  }).join('');
+ }
+ updateSortHeadersPA();
 }
-function clearFiltersPA(){['fpa-id','fpa-piaid','fpa-pia','fpa-area','fpa-serv','fpa-item','fpa-tipo','fpa-resp','fpa-stat'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});renderPlanosAcao();}
+function clearFiltersPA(){['fpa-id','fpa-piaid','fpa-pia','fpa-area','fpa-serv','fpa-item','fpa-tipo','fpa-resp','fpa-stat'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});pgPA.page=1;renderPlanosAcao();}
 function exportPlanosAcao(){
  if(!db.loaded){toast('⚠ Faça login primeiro','err');return;}
  var list=filterPlanos();if(!list.length){toast('⚠ Nada para exportar','err');return;}
